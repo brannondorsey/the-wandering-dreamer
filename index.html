@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Confident Dreamer</title>
+    <title>The Wandering Dreamer</title>
     <link href="https://fonts.googleapis.com/css?family=Playfair+Display" rel="stylesheet">
     <link href="main.css" rel="stylesheet">
   </head>
@@ -13,8 +13,9 @@
     <div id="app">
 
       <!-- <h1>The Unsure Machine</h1> -->
-      <h1>The Confident Dreamer<span id="asterisk">*</span></h1>
-      <div id="info-modal" class="hidden">
+      <!-- <h1>The Confident Dreamer</h1> -->
+      <h1>The Wandering Dreamer<span id="asterisk">*</span></h1>
+      <div id="info-modal" class="hidden" onclick="this.classList.toggle('hidden')">
         <div class="text-box">
           <p>
             This experiment uses four machine learning models to create a feedback loop between synthesized images and text.
@@ -35,7 +36,7 @@
       <!-- BigGAN Images -->
       <div class="images biggan-images">
         <span v-for="image in BigGANImages">
-          <img class="biggan-image"  v-bind:src="image">
+          <img class="biggan-image ml-image"  v-bind:src="image">
         </span>
       </div>
 
@@ -47,7 +48,7 @@
       <!-- Attention GAN Images-->
       <div class="images attngan-images">
         <span v-for="image in AttnGANImages">
-          <img class="attngan-image" v-bind:src="image">
+          <img class="attngan-image ml-image" v-bind:src="image">
         </span>
       </div>
 
