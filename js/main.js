@@ -72,16 +72,9 @@ function main() {
 }
 
 function addBigGANImage(base64) {
-    if (app.BigGANImages.length > 5) {
-        app.BigGANImages.shift()
-    }
-
+    shiftImages(app.BigGANImages)
     const imgs = document.getElementsByClassName('biggan-image')
-    let i = 1
-    for (img of imgs) {
-        img.style.opacity = 0 + (i / imgs.length) - 0.1
-        i++
-    }
+    fadeImages(imgs)
     app.BigGANImages.push(base64)
 }
 
@@ -99,16 +92,9 @@ function addIm2txtCaption(caption) {
 }
 
 function addAttnGANImage(base64) {
-    if (app.AttnGANImages.length > 5) {
-        app.AttnGANImages.shift()
-    }
-
+    shiftImages(app.AttnGANImages)
     const imgs = document.getElementsByClassName('attngan-image')
-    let i = 1
-    for (img of imgs) {
-        img.style.opacity = 0 + (i / imgs.length) - 0.1
-        i++
-    }
+    fadeImages(imgs)
     app.AttnGANImages.push(base64)
 }
 
@@ -122,6 +108,20 @@ function addMobileNetCategory(caption) {
         el.classList.add('fade-text-out')
         setTimeout(() => el.classList.remove('fade-text-out'), 500)
     }, 2500)
+}
+
+function shiftImages(arrayOfBase64) {
+    if (arrayOfBase64.length > 4) {
+        arrayOfBase64.shift()
+    }
+}
+
+function fadeImages(imageElements) {
+    let i = 1
+    for (img of imageElements) {
+        img.style.opacity = 0 + (i / imageElements.length) - 0.1
+        i++
+    }
 }
 
 function onModelNetworkError(err) {
