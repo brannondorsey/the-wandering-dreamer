@@ -8,6 +8,8 @@ const app = new Vue({
     }
 })
 
+const CAPTION_DELAY = 2200;
+
 async function main() {
 
     document.getElementById('asterisk').onclick = (e) => {
@@ -34,6 +36,7 @@ async function main() {
         caption = output.caption
         console.log(`[im2txt] ${caption}`)
         addIm2txtCaption(caption)
+        await delay(CAPTION_DELAY)
 
         output = await models['AttnGAN'].query({ caption })
         image = output.result
@@ -44,9 +47,10 @@ async function main() {
         category = output[0].className
         console.log(`[MobileNet] ${category}`)
         addMobileNetCategory(category)
+        await delay(CAPTION_DELAY)
 
         output = await models['BigGAN'].query({
-            category: 'stingray',
+            category,
             z: randomZVector()
         })
     }
@@ -115,7 +119,7 @@ function addIm2txtCaption(caption) {
         el.classList.remove('fade-text-in')
         el.classList.add('fade-text-out')
         setTimeout(() => el.classList.remove('fade-text-out'), 500)
-    }, 2500)
+    }, CAPTION_DELAY)
 }
 
 function addAttnGANImage(base64) {
@@ -134,7 +138,7 @@ function addMobileNetCategory(caption) {
         el.classList.remove('fade-text-in')
         el.classList.add('fade-text-out')
         setTimeout(() => el.classList.remove('fade-text-out'), 500)
-    }, 2500)
+    }, CAPTION_DELAY)
 }
 
 function shiftImages(arrayOfBase64) {
@@ -153,6 +157,10 @@ function fadeImages(imageElements) {
 
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function delay(millis) {
+    return new Promise(resolve => setTimeout(resolve, millis))
 }
 
 main()
