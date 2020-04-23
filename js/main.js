@@ -1,9 +1,3 @@
-const RUNWAY_HOST = 'http://localhost'
-const ATTNGAN_PORT   = 3000
-const BIGGAN_PORT    = 3001
-const IM2TXT_PORT    = 3002
-const MOBILENET_PORT = 3003
-
 const app = new Vue({
     el: '#app',
     data: {
@@ -14,61 +8,94 @@ const app = new Vue({
     }
 })
 
-function main() {
-
-    const models = {}
-    models['AttnGAN']   = new RunwayModel(`${RUNWAY_HOST}:${ATTNGAN_PORT}`)
-    models['BigGAN']    = new RunwayModel(`${RUNWAY_HOST}:${BIGGAN_PORT}`)
-    models['im2txt']    = new RunwayModel(`${RUNWAY_HOST}:${IM2TXT_PORT}`)
-    models['MobileNet'] = new RunwayModel(`${RUNWAY_HOST}:${MOBILENET_PORT}`)
-
-    models['AttnGAN'].netError(onModelNetworkError)
-    models['BigGAN'].netError(onModelNetworkError)
-    models['im2txt'].netError(onModelNetworkError)
-    models['MobileNet'].netError(onModelNetworkError)
-
-    models['BigGAN'].input({
-        category: 'stingray',
-        truncation: 0.4,
-        seed: parseInt(randomInt(0, 1000))
-    })
-
-    models['BigGAN'].output((data) => {
-        console.log('[BigGAN] Received an image')
-        const image = data.generatedOutput
-        models['im2txt'].input({ image: data.generatedOutput })
-        addBigGANImage(image)
-    })
-
-    models['im2txt'].output((data) => {
-        const caption = data.results[0].caption
-        console.log(`[im2txt] ${caption}`)
-        models['AttnGAN'].input({ caption })
-        addIm2txtCaption(caption)
-    })
-
-    models['AttnGAN'].output((data) => {
-        console.log('[AttnGAN] Received an image')
-        const image = data.result
-        models['MobileNet'].input({ image })
-        addAttnGANImage(image)
-    })
-
-    models['MobileNet'].output((data) => {
-        const category = data.results[0].className
-        console.log(`[MobileNet] ${category}`)
-        models['BigGAN'].input({
-            category,
-            truncation: 0.4,
-            seed: parseInt(randomInt(0, 1000))
-        })
-        addMobileNetCategory(category)
-    })
+async function main() {
 
     document.getElementById('asterisk').onclick = (e) => {
-        console.log('clicked')
         document.getElementById('info-modal').classList.toggle('hidden')
     }
+
+    const models = {}
+    models['AttnGAN']    = new RunwayHostedModel(`https://attngan.hosted-models.runwayml.cloud/v1`, 'e5iKhIk5Ly90LElSND8M5g==')
+    models['BigGAN']     = new RunwayHostedModel(`https://biggan.hosted-models.runwayml.cloud/v1`, 'Tmg5rPCP4fi8M8jyYPDIXw==')
+    models['im2txt']     = new RunwayHostedModel(`https://im2txt.hosted-models.runwayml.cloud/v1`, 'OotKQhfwTCW8xEIQSMTV8w==')
+
+    let output = await models['BigGAN'].query({
+        category: 'stingray',
+        z: randomZVector()
+    })
+
+    let image, caption, category
+    while (true) {
+        console.log('[BigGAN] Received an image')
+        image = output.generated_output
+        addBigGANImage(image)
+
+        output = await models['im2txt'].query({ image })
+        caption = output.caption
+        console.log(`[im2txt] ${caption}`)
+        addIm2txtCaption(caption)
+
+        output = await models['AttnGAN'].query({ caption })
+        image = output.result
+        console.log('[AttnGAN] Received an image')
+        addAttnGANImage(image)
+
+        output = await queryMobileNet(image)
+        category = output[0].className
+        console.log(`[MobileNet] ${category}`)
+        addMobileNetCategory(category)
+
+        output = await models['BigGAN'].query({
+            category: 'stingray',
+            z: randomZVector()
+        })
+    }
+}
+
+async function loadImage(base64Image) {
+    return new Promise((resolve, reject) => {
+        const img = document.createElement('img')
+        img.hidden = true
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = base64Image
+    })
+}
+
+let mobile = null
+async function queryMobileNet(base64image) {
+    const img = await loadImage(base64image)
+    if (!mobile) mobile = await mobilenet.load()
+    const predictions = await mobile.classify(img)
+    return predictions
+}
+
+function randomZVector() {
+    const vec = []
+    for (let i = 0; i < 128; i++) vec[i] = randomGaussian()
+    return vec
+}
+
+let gaussianCache = false
+function randomGaussian(mean, sd) {
+    let y1, x1, x2, w;
+    if (gaussianCache) {
+        y1 = y2;
+        gaussianCache = false;
+    } else {
+        do {
+            x1 = Math.random() * 2 - 1;
+            x2 = Math.random() * 2 - 1;
+            w = x1 * x1 + x2 * x2;
+        } while (w >= 1);
+        w = Math.sqrt(-2 * Math.log(w) / w);
+        y1 = x1 * w;
+        y2 = x2 * w;
+        gaussianCache = true;
+    }
+    const m = mean || 0;
+    const s = sd || 1;
+    return y1 * s + m;
 }
 
 function addBigGANImage(base64) {
@@ -122,11 +149,6 @@ function fadeImages(imageElements) {
         img.style.opacity = 0 + (i / imageElements.length) - 0.1
         i++
     }
-}
-
-function onModelNetworkError(err) {
-    console.error('Model network error:')
-    console.error(err)
 }
 
 function randomInt(min, max) {
