@@ -16,12 +16,19 @@ async function main() {
         document.getElementById('info-modal').classList.toggle('hidden')
     }
 
-    const models = {}
-    models['AttnGAN']    = new RunwayHostedModel(`https://attngan.hosted-models.runwayml.cloud/v1`, 'e5iKhIk5Ly90LElSND8M5g==')
-    models['BigGAN']     = new RunwayHostedModel(`https://biggan.hosted-models.runwayml.cloud/v1`, 'Tmg5rPCP4fi8M8jyYPDIXw==')
-    models['im2txt']     = new RunwayHostedModel(`https://im2txt.hosted-models.runwayml.cloud/v1`, 'OotKQhfwTCW8xEIQSMTV8w==')
+    const attnGAN    = new RunwayHostedModel(`https://attngan.hosted-models.runwayml.cloud/v1`, 'e5iKhIk5Ly90LElSND8M5g==')
+    const bigGAN     = new RunwayHostedModel(`https://biggan.hosted-models.runwayml.cloud/v1`, 'Tmg5rPCP4fi8M8jyYPDIXw==')
+    const im2txt     = new RunwayHostedModel(`https://im2txt.hosted-models.runwayml.cloud/v1`, 'OotKQhfwTCW8xEIQSMTV8w==')
 
-    let output = await models['BigGAN'].query({
+    console.log('Waiting for models to wake up')
+    await Promise.all([
+        attnGAN.awaken(true),
+        bigGAN.awaken(true),
+        im2txt.awaken(true),
+    ])
+    console.log('Models are awake')
+
+    let output = await bigGAN.query({
         category: 'stingray',
         z: randomZVector()
     })
@@ -32,13 +39,13 @@ async function main() {
         image = output.generated_output
         addBigGANImage(image)
 
-        output = await models['im2txt'].query({ image })
+        output = await im2txt.query({ image })
         caption = output.caption
         console.log(`[im2txt] ${caption}`)
         addIm2txtCaption(caption)
         await delay(CAPTION_DELAY)
 
-        output = await models['AttnGAN'].query({ caption })
+        output = await attnGAN.query({ caption })
         image = output.result
         console.log('[AttnGAN] Received an image')
         addAttnGANImage(image)
@@ -49,7 +56,7 @@ async function main() {
         addMobileNetCategory(category)
         await delay(CAPTION_DELAY)
 
-        output = await models['BigGAN'].query({
+        output = await bigGAN.query({
             category,
             z: randomZVector()
         })
